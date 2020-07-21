@@ -1,11 +1,8 @@
 /**
- * External dependencies
- */
-import { find, get, includes } from 'lodash';
-
-/**
  * WordPress dependencies
  */
+import { __, sprintf } from '@wordpress/i18n';
+import { useDispatch, useSelect } from '@wordpress/data';
 import { Button, PanelBody } from '@wordpress/components';
 import { useDispatch, useSelect } from '@wordpress/data';
 import { __, sprintf } from '@wordpress/i18n';
@@ -13,7 +10,7 @@ import { __, sprintf } from '@wordpress/i18n';
 /**
  * Internal dependencies
  */
-import { POST_FORMATS } from '../post-format';
+import { POST_FORMAT_TITLES } from '../post-format';
 
 const getSuggestion = ( supportedFormats, suggestedPostFormat ) => {
 	const formats = POST_FORMATS.filter( ( format ) =>
@@ -33,41 +30,46 @@ const PostFormatSuggestion = ( {
 );
 
 export default function PostFormatPanel() {
-	const { currentPostFormat, suggestion } = useSelect( ( select ) => {
+	const { currentFormat, suggestedFormat } = useSelect( ( select ) => {
+		const supportedFormats =
+			select( 'core' ).getThemeSupports().formats ?? [];
 		const { getEditedPostAttribute, getSuggestedPostFormat } = select(
 			'core/editor'
 		);
-		const supportedFormats = get(
-			select( 'core' ).getThemeSupports(),
-			[ 'formats' ],
-			[]
-		);
+		const potentialSuggestedFormat = getSuggestedPostFormat();
+
 		return {
-			currentPostFormat: getEditedPostAttribute( 'format' ),
-			suggestion: getSuggestion(
-				supportedFormats,
-				getSuggestedPostFormat()
-			),
+			currentFormat: getEditedPostAttribute( 'format' ),
+			suggestedFormat: supportedFormats.includes(
+				potentialSuggestedFormat
+			)
+				? potentialSuggestedFormat
+				: null,
 		};
 	}, [] );
 
 	const { editPost } = useDispatch( 'core/editor' );
 
-	const onUpdatePostFormat = ( format ) => editPost( { format } );
+	function updatePostFormat( format ) {
+		editPost( { format } );
+	}
 
-	const panelBodyTitle = [
-		__( 'Suggestion:' ),
-		<span className="editor-post-publish-panel__link" key="label">
-			{ __( 'Use a post format' ) }
-		</span>,
-	];
-
-	if ( ! suggestion || suggestion.id === currentPostFormat ) {
+	if ( ! suggestedFormat || suggestedFormat === currentFormat ) {
 		return null;
 	}
 
 	return (
-		<PanelBody initialOpen={ false } title={ panelBodyTitle }>
+		<PanelBody
+			initialOpen={ false }
+			title={
+				<>
+					{ __( 'Suggestion:' ) }
+					<span className="editor-post-publish-panel__link">
+						{ __( 'Use a post format' ) }
+					</span>
+				</>
+			}
+		>
 			<p>
 				{ __(
 					'Your theme uses post formats to highlight different kinds of content, like images or videos. Apply a post format to see this special styling.'
@@ -75,12 +77,12 @@ export default function PostFormatPanel() {
 			</p>
 			<p>
 				<PostFormatSuggestion
-					onUpdatePostFormat={ onUpdatePostFormat }
-					suggestedPostFormat={ suggestion.id }
+					onUpdatePostFormat={ updatePostFormat }
+					suggestedPostFormat={ suggestedFormat }
 					suggestionText={ sprintf(
 						/* translators: %s: post format */
 						__( 'Apply the "%1$s" format.' ),
-						suggestion.caption
+						POST_FORMAT_TITLES[ suggestedFormat ]
 					) }
 				/>
 			</p>
