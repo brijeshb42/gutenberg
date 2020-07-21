@@ -12,19 +12,8 @@ import { __, sprintf } from '@wordpress/i18n';
  */
 import { POST_FORMAT_TITLES } from '../post-format';
 
-const getSuggestion = ( supportedFormats, suggestedPostFormat ) => {
-	const formats = POST_FORMATS.filter( ( format ) =>
-		includes( supportedFormats, format.id )
-	);
-	return find( formats, ( format ) => format.id === suggestedPostFormat );
-};
-
-const PostFormatSuggestion = ( {
-	suggestedPostFormat,
-	suggestionText,
-	onUpdatePostFormat,
-} ) => (
-	<Button isLink onClick={ () => onUpdatePostFormat( suggestedPostFormat ) }>
+const PostFormatSuggestion = ( { onApplySuggestion, suggestionText } ) => (
+	<Button isLink onClick={ onApplySuggestion }>
 		{ suggestionText }
 	</Button>
 );
@@ -57,10 +46,6 @@ export default function PostFormatPanel() {
 		return null;
 	}
 
-	function updatePostFormat( format ) {
-		editPost( { format } );
-	}
-
 	return (
 		<PanelBody
 			initialOpen={ false }
@@ -80,8 +65,9 @@ export default function PostFormatPanel() {
 			</p>
 			<p>
 				<PostFormatSuggestion
-					onUpdatePostFormat={ updatePostFormat }
-					suggestedPostFormat={ suggestedFormat }
+					onApplySuggestion={ () => {
+						editPost( { format: suggestedFormat } );
+					} }
 					suggestionText={ sprintf(
 						/* translators: %s: post format */
 						__( 'Apply the "%1$s" format.' ),
